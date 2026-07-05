@@ -175,6 +175,13 @@ Decide everything else yourself, guided by the agreed DoD and common sense. When
 comes up that has an obvious default, take the default and note it in the iteration log rather
 than stopping to ask.
 
+**Carry the work to completion — always.** A heavy task ends *done*, not "mostly done". Don't
+stop and hand back "the rest is left to do" when you can keep going. If a remaining piece is
+large or splits into independent parts, delegate it to a subagent to finish it (or, when the
+task is genuinely big, a `Workflow` — see below); use delegation to *complete* the work, not to
+offload the leftovers. The only acceptable not-fully-complete states are a genuine environment
+block (deliver-anyway) or a real product decision you had to surface — both named explicitly.
+
 ---
 
 ## Reporting (heavy mode): signal, not methodology
@@ -204,6 +211,8 @@ your job is to reconstruct them.
 
 By default the DoD includes the following, even if not stated explicitly:
 
+- [ ] every explicit ask in the original request is delivered and working, mapped item-by-item —
+      no "remaining" / "to do later" leftovers (see "Before 'done'");
 - [ ] unit/integration tests for the new logic are written and pass;
 - [ ] mocks are created for external dependencies where needed (network, DB, payments, time);
 - [ ] the project builds with no errors (`build` green);
@@ -211,8 +220,9 @@ By default the DoD includes the following, even if not stated explicitly:
 - [ ] functionality is verified live — Playwright (web) or Computer Use / hitting the API/CLI,
       not "by eyeballing the code";
 - [ ] no regressions: existing tests keep passing;
-- [ ] no secrets in code/logs/frontend; server-side validation isn't bypassable (see the
-      user's global security rules);
+- [ ] the change passes a security review for what it touches — authn/authz & access control,
+      input validation & injection (SQL/command/path), secrets in code/logs/responses, unsafe
+      deserialization, SSRF, over-broad output (not just "no hardcoded secrets");
 - [ ] a clean PR is opened ONLY after all builds and tests are green and it is guaranteed to
       pass CI/CD.
 
@@ -364,9 +374,15 @@ Rules:
 
 ## Heavy tasks → Workflow
 
-If the task is large (a project-wide migration, a bug hunt, "6 phases, 50 agents", a broad
-audit) — don't try to dig through it all solo in one session. Split it into phases and fan the
-work out to agents via `Workflow` (deterministic orchestration with fan-out).
+Match the tool to the size. A heavy-but-contained task: delegate the independent or specialized
+chunks to **subagents** (a `debugger` for a gnarly failure, a `security-reviewer` before
+shipping, parallel implementers on non-overlapping files) and finish it in this session.
+Escalate to a full **`Workflow`** only when the task is genuinely large and one session can't
+hold it — a project-wide migration, a bug hunt, "6 phases, 50 agents", a broad audit. Either
+way the goal is the same: to *finish* the work, not to shed it.
+
+When you do reach for a `Workflow`: split it into phases and fan the work out to agents
+(deterministic orchestration with fan-out).
 
 Key point: **the ultraloop principle extends to every phase.** A phase isn't done until its
 result has passed checks; the overall result isn't done until a clean PR is assembled that
@@ -377,6 +393,30 @@ so they don't conflict.
 
 While phases/agents run — wait via `ScheduleWakeup`, not by polling. `Workflow` is tracked by
 the harness, so you'll be notified on completion; keep the wakeup as a fallback.
+
+---
+
+## Before "done" (heavy mode): satisfy the request in full, then security-check
+
+"Done" is measured against the user's actual request, not against your plan. Before the PR
+checks below:
+
+- **Re-read the original request and map it item-by-item to what you delivered.** Every explicit
+  ask must be actually built and working. "Done except X / Y / Z", "the rest is left to do",
+  "remaining: …" is NOT done — it's an unfinished heavy task. Keep going (delegate to subagents,
+  or a `Workflow` if genuinely big) until the request is fully met. The only acceptable
+  not-fully-complete states are a genuine environment block (deliver-anyway: `written, not yet
+  run` + run plan) or a real product decision you had to surface — both named explicitly, never
+  disguised as "done".
+- **Security pass over the change before shipping.** Review what you touched for the
+  vulnerabilities that class of code invites — authn/authz & access control, input validation &
+  injection (SQL/command/path), secrets in code/logs/responses, unsafe deserialization, SSRF,
+  over-broad output. Fix what you find; surface anything genuinely out of scope as an explicit
+  open security note, not silence. For security-sensitive changes, run a dedicated
+  `security-reviewer` subagent pass.
+
+Only once the request is fully met and the security pass is clean do you proceed to the PR
+checks.
 
 ---
 
@@ -439,7 +479,10 @@ highest level the environment supports — and state plainly which level that is
 - Heavy loop: change → tests/build/lint/live check → fix → repeat, with an iteration log.
 - **Report signal, not methodology:** what's verified / red / left; note self-verify once;
   nothing new → say nothing.
-- Long run → `ScheduleWakeup`, not polling. Large task → `Workflow` split into phases.
+- Long run → `ScheduleWakeup`, not polling. Heavy chunk → subagents; genuinely large → `Workflow`.
+- **Before "done" (heavy):** every explicit ask delivered & working, item-by-item (no "remaining"
+  leftovers) + a security pass over what you touched. Carry it to completion — delegate to
+  subagents / a `Workflow` to *finish*, never hand back the rest.
 - **Finish (heavy) is proven by command before "done":** mergeable (no conflicts) + every
   REQUIRED CI gate green + state re-read live. Never wave away a red gate — check if it's
   required (required+red = not done; not-required+red = an open item, not a checkmark). Verify
