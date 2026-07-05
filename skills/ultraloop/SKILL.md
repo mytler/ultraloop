@@ -177,6 +177,21 @@ than stopping to ask.
 
 ---
 
+## Reporting (heavy mode): signal, not methodology
+
+Report tersely and never re-explain how ultraloop works. Every update carries only new,
+substantive information — what's verified, what's red, what's left.
+
+- Do NOT narrate the method turn after turn: no "collected the data", "the verify agents failed
+  so I'm checking myself", "no green without evidence", and the like. If you had to verify
+  something yourself instead of via the intended tooling, note it ONCE, briefly — then stop
+  repeating it.
+- State outcomes, not process: "tests green (42 pass)", "typecheck red at `foo.ts:10`, fixing",
+  "POST returns 201, duplicate → 409 confirmed". Skip the play-by-play.
+- If a turn has nothing new to say, say nothing. Silence beats a paragraph that restates the plan.
+
+---
+
 ## Definition of Done (heavy mode)
 
 This full DoD contract is for heavy tasks. A light task doesn't get this — it gets working
@@ -267,6 +282,12 @@ Forbidden:
 - swapping a requested real integration (an API call, a DB query) for a constant stub;
 - catching and swallowing errors so they "don't get in the way";
 - writing placeholders into code ("coming soon", TODO stubs) and passing them off as finished.
+
+**Try the cheap check before you write anything off.** Before you claim "can't", "not
+applicable", or "doesn't count", run the quick command that would settle it — a CI gate's
+required status, a PR's `mergeable`, the base branch's `git log`, the list of open PRs. Writing
+something off without that check is itself a fake green: you're asserting a pass you never
+established. If you do write it off, attach the command and its output.
 
 If a DoD item genuinely can't be met within max turns, say so: what's not done and why. An
 honest "this is still red" always beats a masked void.
@@ -359,23 +380,45 @@ the harness, so you'll be notified on completion; keep the wakeup as a fallback.
 
 ---
 
-## Finish
+## Finish (heavy mode): a "clean PR" is proven by command, not by memory
 
-When the ENTIRE DoD is green — and only then:
+"Clean PR" has a hard definition, and you confirm **every part of it with an actual command
+BEFORE you call the DoD green** — not after:
 
-1. Assemble a clean PR: meaningful atomic commits, a clear description, a link to the original
-   task. Don't push to `main` directly — branch + PR (per the user's rules: `gh pr merge
-   --auto` after CI/CD is green).
-2. In the PR description, list the DoD items completed and the check results (what was run,
-   with what outcome) — so the reviewer can see the green was confirmed, not just claimed.
-3. Wait for and confirm CI/CD passes. Red CI = the task isn't closed: go back into the loop.
+1. **Mergeable into base, no conflicts — check it, don't assume.** `gh pr view <pr> --json
+   mergeable,mergeStateStatus` (or a trial merge). `CONFLICTING` / dirty → not clean.
+2. **Every REQUIRED CI gate is green.** Read the run results (`gh pr checks <pr>`) AND confirm
+   which checks are actually required (`gh api repos/{owner}/{repo}/branches/{base}/protection/required_status_checks`,
+   or branch-protection settings). Any required check not green → the PR is not clean and the DoD
+   is not green.
+3. **Read the branch/PR state from a command right before you report** — your memory of "it was
+   green earlier" is not evidence.
 
-Only after CI/CD is green is the task considered done.
+**A red gate cannot be waved away by your own classification.** "That's infra, not my code" is
+not a verdict you may reach by assertion — the only allowed move is to *check* whether the gate
+is required:
+- **required + red** → PR not clean, DoD not green. Full stop: fix it, or report it red.
+- **genuinely not required + red** (confirmed by command) → it becomes an OPEN item, written out
+  as "CI: `<check>` red (not required) — <cause> — <fix>", never a checkmark.
 
-**If it isn't a git repo with a remote, or CI can't run in this environment**, don't block on
-this step. Deliver the code + tests + the one-step verification plan, tag it `written, not yet
-run`, and mark the PR + green-CI step as *deferred until this is a repo with a remote*. Close it
-out at the highest level the environment supports — and state plainly which level that is.
+Reclassifying a red gate as "doesn't count" without checking its required status is a forbidden
+fake green (see "try the cheap check before you write anything off").
+
+**Never report "merged / in `main` / done" from an assumption** about how a merge or squash
+resolved. Before you say it landed:
+- verify what actually reached the base branch — `git fetch && git log origin/<base>` for your
+  commits / the PR;
+- confirm no conflicting open PRs are racing yours — `gh pr list --state open --base <base>`.
+Run both BEFORE the word "done", not after.
+
+Then, and only then: a clean PR with meaningful atomic commits, a description listing the DoD
+items and their check results, and `gh pr merge --auto` after green CI/CD (don't push to `main`
+directly). Red required CI = task not closed → back into the loop.
+
+**If it isn't a git repo with a remote, or CI can't run in this environment**, don't block:
+deliver the code + tests + the one-step verification plan, tag it `written, not yet run`, and
+mark the PR + green-CI step as *deferred until this is a repo with a remote*. Close out at the
+highest level the environment supports — and state plainly which level that is.
 
 ---
 
@@ -394,5 +437,10 @@ out at the highest level the environment supports — and state plainly which le
 - Can't run the loop here (no net/deps/DB/git)? Deliver code + tests + exact run commands +
   expected results, tag `written, not yet run`, defer PR/CI — never withhold the code.
 - Heavy loop: change → tests/build/lint/live check → fix → repeat, with an iteration log.
+- **Report signal, not methodology:** what's verified / red / left; note self-verify once;
+  nothing new → say nothing.
 - Long run → `ScheduleWakeup`, not polling. Large task → `Workflow` split into phases.
-- Finish (heavy) = clean PR + confirmed green CI/CD (deferred if not a git repo with a remote).
+- **Finish (heavy) is proven by command before "done":** mergeable (no conflicts) + every
+  REQUIRED CI gate green + state re-read live. Never wave away a red gate — check if it's
+  required (required+red = not done; not-required+red = an open item, not a checkmark). Verify
+  what actually landed + no conflicting open PRs before saying "merged". Deferred if no git remote.
