@@ -319,12 +319,13 @@ honest "this is still red" always beats a masked void.
 
 ---
 
-## When the verify loop can't run here (deliver anyway)
+## When you can't reach green CI here (deliver — but it's NOT done)
 
-Sometimes the environment simply can't close the loop: no network to install deps, no
-`node_modules`, no database, or the folder isn't a git repo with a remote. That does not
-downgrade you to "recon + questions". You still produce the full result — you just can't stamp
-it `verified: green` yet. Do all of this:
+Sometimes the environment can't close the loop: no network to install deps, no `node_modules`, no
+database, or the folder isn't a git repo with a remote. This does **not** make the task done —
+green CI on an open PR is mandatory (see the stop-condition) and you can't produce it here. But it
+also does not downgrade you to "recon + questions": you still hand over the full result and report
+the task **blocked, not done**. Do all of this:
 
 - **Ship the actual artifact:** the implementation *and* tests, written to follow the repo's
   existing patterns (mirror the closest existing route/handler/test — e.g. write `users.test.ts`
@@ -340,15 +341,16 @@ it `verified: green` yet. Do all of this:
   one-command fix. It's not caused by your change and must not block delivery, but the user needs
   it so a green-looking plan doesn't fail CI for a reason that was already there.
 - **Tag the status honestly:** `written, not yet run` — never dress it up as verified.
-- **Defer, don't block, on infra steps:** if it isn't a git repo with a remote, mark the "PR +
-  green CI" step as *deferred until this is a repo with a remote* and move on — don't withhold
-  code over it.
+- **Report it blocked, don't dress it as done:** state that the PR + green-CI step can't run in
+  this environment, so the task is **not done — blocked on <reason>**. Don't withhold the code, but
+  don't call it "done" or a soft "deferred-done" either. It gets finished once a real environment
+  exists (by a human, or by you when one appears).
 - **Offer to close the loop** when an environment with installs/DB appears (or via
   `ScheduleWakeup` if something is being provisioned) — and ask for **max turns** only then, at
   the point you actually enter the autonomous verify cycle.
 
-The autonomous result the user comes back to is: working code + tests + a precise plan to verify
-it — not a list of questions.
+What the user comes back to is: working code + tests + a precise verification plan — clearly
+labeled **not done (blocked on <reason>)**, never a list of questions and never a false "done".
 
 ---
 
@@ -417,9 +419,12 @@ the harness, so you'll be notified on completion; keep the wakeup as a fallback.
 1. the change is implemented fully, not partially;
 2. the branch is synced to base with no conflicts;
 3. local checks are green: lint + types + tests + build;
-4. the PR is open and CI is green (left unmerged for a human — see Finish).
+4. the PR is open and CI is **green** (left unmerged for a human — see Finish).
 
-While any one is unmet, the work is NOT finished — never announce success on partial progress.
+All four are mandatory, with **no exception**: a green CI on an open PR is required for "done".
+While any one is unmet, the work is NOT finished — never announce success on partial progress, and
+never let "the environment couldn't run CI" count as done. An environment that can't reach green
+CI is a *blocked, not done* outcome (see "When you can't reach green CI here"), not a pass.
 
 "Done" is measured against the user's actual request, not against your plan. Before the PR
 checks below:
@@ -427,10 +432,10 @@ checks below:
 - **Re-read the original request and map it item-by-item to what you delivered.** Every explicit
   ask must be actually built and working. "Done except X / Y / Z", "the rest is left to do",
   "remaining: …" is NOT done — it's an unfinished heavy task. Keep going (delegate to subagents,
-  or a `Workflow` if genuinely big) until the request is fully met. The only acceptable
-  not-fully-complete states are a genuine environment block (deliver-anyway: `written, not yet
-  run` + run plan) or a real product decision you had to surface — both named explicitly, never
-  disguised as "done".
+  or a `Workflow` if genuinely big) until the request is fully met with green CI. If something
+  genuinely stops that — an environment that can't run CI, or a real product decision you had to
+  surface — the task is **blocked, NOT done**: say so plainly, hand over the code + run plan for a
+  human to finish, and never present blocked as "done" or "deferred-done".
 - **Security pass over the change before shipping.** Review what you touched for the
   vulnerabilities that class of code invites — authn/authz & access control, input validation &
   injection (SQL/command/path), secrets in code/logs/responses, unsafe deserialization, SSRF,
@@ -482,10 +487,11 @@ So the finish is: a clean PR with meaningful atomic commits and a description li
 items + their check results, pushed to a branch (never to `main` directly), CI green — **left
 unmerged for a human to review and merge.**
 
-**If it isn't a git repo with a remote, or CI can't run in this environment**, don't block:
-deliver the code + tests + the one-step verification plan, tag it `written, not yet run`, and
-mark the PR + green-CI step as *deferred until this is a repo with a remote*. Close out at the
-highest level the environment supports — and state plainly which level that is.
+**If it isn't a git repo with a remote, or CI can't run in this environment**, you cannot reach
+the done-bar (green CI on an open PR), so the task is **blocked, not done**. Don't withhold work:
+deliver the code + tests + the one-step verification plan, tag it `written, not yet run` (see "When
+you can't reach green CI here"), and report it plainly as *not done — blocked on <reason>*. Never
+report a no-CI outcome as "done" or "deferred-done".
 
 **Final report — once, at the very end, nothing before it.** When you stop, report exactly:
 - **Changed** — the files touched.
@@ -508,13 +514,15 @@ No methodology recap, no play-by-play — just these four.
   blocking on defaultable forks) → DoD grounded in the real stack → build-verify-flag → autonomous
   execution. Ask max turns only when you actually enter the verify loop.
 - Done = observable evidence that it works, not "code written".
-- **Heavy stop-condition (all 4 at once):** implemented fully + branch synced to base (no
-  conflicts) + local lint/types/tests/build green + PR open & CI green (unmerged). Any one unmet
-  = not done; never announce success on partial progress.
+- **Heavy stop-condition (all 4, mandatory, no exception):** implemented fully + branch synced to
+  base (no conflicts) + local lint/types/tests/build green + PR open & CI green (unmerged). Any one
+  unmet = not done. A green CI is required — an env that can't run CI = *blocked, not done*, never
+  "done"/"deferred-done".
 - **Separate verified from produced:** always ship the artifact (code + tests). Never fake green
   = never *claim* verified when you didn't. Tag `verified: green` vs `written, not yet run`.
 - Can't run the loop here (no net/deps/DB/git)? Deliver code + tests + exact run commands +
-  expected results, tag `written, not yet run`, defer PR/CI — never withhold the code.
+  expected results, tag `written, not yet run` — but report it **blocked, not done** (green CI is
+  mandatory); never withhold the code, never call it done.
 - Heavy loop: sync to base → change → run the FULL checks (lint/types/tests/build/live) using the
   repo's own commands → fix → repeat, ≤3 attempts per failing check, with an iteration log.
 - A blocker claim needs the exact `stderr` and a command run first — not an assertion. Final
