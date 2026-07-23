@@ -6,8 +6,9 @@ description: >
   and right-sizes its process to the task. For a small, self-contained change it delivers the
   solution immediately on sensible defaults with its assumptions stated, without unnecessary
   questions or process overhead. For a feature or multi-step effort in a real project it inspects
-  the repository first to answer its own questions, asks only what the code cannot reveal, agrees
-  an explicit Definition of Done and an iteration budget (max turns), then executes autonomously
+  the repository first to answer its own questions, turns whatever the code cannot reveal into
+  explicit flagged assumptions rather than interrupting, sets an explicit Definition of Done and
+  an iteration budget (max turns) itself, then executes autonomously
   — looping change → tests → build → lint → live check (Playwright / Computer Use) → fix until
   every criterion passes — before assembling a clean pull request that passes CI/CD. Use this
   skill whenever the user invokes "ultraloop" or "/ultraloop", or asks to carry a task through to
@@ -32,14 +33,59 @@ error and the size of the task. A one-file function and a 50-agent workflow must
 same ceremony — applying the heavy ritual to something small is the skill's most common
 failure, and it's a real failure: it also breaks the whole promise of ultraloop ("walk away,
 come back to a result") if nothing can start until you come back and answer 20 questions. So
-before anything else, triage the task (Phase 0) and pick how heavy the process should be. Ask
-exactly as many questions as you need to avoid going down a clearly wrong path — no more.
+before anything else, triage the task (Phase 0) and pick how heavy the process should be. **Do
+not interview the user.** Run autonomously on reasonable, explicitly-stated assumptions; the only
+thing that ever stops you is a destructive or irreversible action — and that's a halt-and-report,
+not a clarifying question.
+
+**Don't offer — do it. The invocation is confirmation + permission, 2-in-1.** When the user
+invokes ultraloop, that single act *is* both the go-ahead and the authorization to carry the task
+all the way to a complete, verified result — you do not need a second yes. So never hand the
+decision back with an offer: no "if you want, I can also add tests", "should I handle the error
+case too?", "let me know if you'd like me to wire up X", "I can do Y if that helps". An offer is a question wearing
+a statement's clothes — it stalls the work on a human reply and breaks the walk-away promise
+exactly like a question does. If a follow-on step is a reasonable part of "done", just do it and
+report it done. If it's genuinely optional or a taste/direction fork, *decide it yourself* on the
+fail-closed default and record it as a flagged assumption or an already-made call ("added X; say
+the word to drop it"), never as a yes/no you're waiting on. The only thing that still gets
+surfaced instead of done is the same safety halt as everywhere else — a
+destructive/irreversible/outward-facing action — and even that you *report*, you don't *offer*.
 
 ---
 
-## PHASE 0 — SCALE ASSESSMENT (always first, before any questions)
+## MANY MESSAGES AT ONCE → NATIVE TODO QUEUE (handle the burst before you start)
 
-Before asking anything, classify the task and choose a mode.
+When the user fires **several instructions in a row** — a burst that queued up while you were
+working, or multiple asks stacked into one turn — the failure mode is losing your place: you finish
+one, forget the other two, and silently drop them. Before you start executing, capture the queue in
+the native **`TodoWrite`** list and let *that*, not your memory, be the source of truth for where you
+are.
+
+1. **Enumerate every distinct ask into `TodoWrite`** — one item per concrete task, in the order
+   given. Split a message that bundles several asks into separate items; when a later message
+   *corrects or refines* an earlier one, replace that item, don't add a second. Don't drop the small
+   ones — the whole point is that nothing falls off the queue.
+2. **Work them strictly one at a time.** Mark exactly one item `in_progress`, carry it through its
+   own Phase 0 triage → execute → verify (light or heavy, per *that* item), and flip it to
+   `completed` only the moment its result is actually verified. Never batch-complete, and never mark
+   done on "code written" — the same completion bar as the rest of this skill applies per item.
+3. **Keep the list live.** Update it after every item, and when a **new message arrives mid-run**,
+   append it as a new todo instead of dropping the task you're on to chase it — finish (or
+   deliberately re-prioritize) the current item, don't just context-switch and forget it. Re-read the
+   list before picking the next task so you resume the right one.
+4. **Report against the queue, not from recollection:** "3/5 done, on #4 (<name>)". The list says
+   what's left; finish the whole queue before you call the turn done — don't stop after the first
+   item just because it was the loudest.
+
+This is intake discipline, not a mode of its own — each queued item still runs through the normal
+light/heavy flow below. A single task needs no todo list; this kicks in for a genuine burst
+(≥3 distinct asks, or any time you notice yourself at risk of dropping one).
+
+---
+
+## PHASE 0 — SCALE ASSESSMENT (always first)
+
+Before anything else, classify the task and choose a mode.
 
 **LIGHT task** — signals (any one):
 - a self-contained snippet / single function / small module;
@@ -48,13 +94,15 @@ Before asking anything, classify the task and choose a mode.
 
 **HEAVY task** — signals (any one):
 - a feature/change inside a real project with a repo, tests, CI/CD;
-- a workflow, multiple phases, many agents, long-running jobs;
+- a workflow, multiple phases, many agents, or a long-running job — possibly **many hours**
+  (an overnight or 10h+ run); that's expected, pace for it (see "Long-running tasks &
+  usage-limit-aware pacing");
 - needs a live check via Playwright / Computer Use;
 - high cost of error, external dependencies, a PR flow.
 
-If it's genuinely unclear, ask ONE short question to settle the scale — don't unfold the full
-interview before you've classified. Then take the matching path: **Light mode** just below, or
-the full two-phase **Heavy mode** (Phase 1 → Phase 2).
+If it's genuinely unclear, default to the heavier interpretation (safer — it just means more
+verification) and note the call; don't ask. Then take the matching path: **Light mode** just
+below, or the full two-phase **Heavy mode** (Phase 1 → Phase 2).
 
 ---
 
@@ -64,13 +112,13 @@ The base model is already good at small, self-contained tasks — left alone it 
 RFC-4180 CSV state machine, not a naive `split(',')`. Your job here is to not get in the way:
 deliver that good result fast with assumptions stated, not to gate it behind a ritual.
 
-- Do NOT run a big clarification phase and do NOT ask for max turns.
-- Ask at most 1–3 questions, and only about genuinely expensive forks — the ones where a wrong
-  default means throwing the work away (for CSV: strict RFC 4180 or simple split? external lib
-  allowed? where should the code go?). Everything else: take a sensible default, don't ask.
-- Write the solution immediately on those defaults, then briefly list the assumptions you made
-  and invite corrections. Phrase forks as "taking X unless you say otherwise", not as blocking
-  questions the user must return to answer.
+- Do NOT run a clarification phase, do NOT ask for max turns, do NOT ask anything.
+- Even on genuinely expensive forks — the ones where a wrong default means throwing the work away
+  (for CSV: strict RFC 4180 or simple split? external lib allowed? where should the code go?) —
+  pick the most standard, robust default instead of asking. Don't ask.
+- Write the solution immediately on those defaults, then briefly list the assumptions you made,
+  phrased as "taking X unless you say otherwise" so the user can correct them *after the fact* —
+  never as blocking questions they must come back to answer before anything happens.
 - Don't drag in the heavy machinery — a formal DoD contract, max turns, PR + CI/CD,
   ScheduleWakeup — when there's no repo/tests/CI and the task doesn't need it. Enough is:
   working code + a couple of basic checks/tests + short caveats.
@@ -87,21 +135,21 @@ corrections. Do NOT dump 20 questions and do NOT ask for max turns.
 
 ---
 
-## HEAVY MODE · PHASE 1 — RECON, THEN CLARIFY (interactive)
+## HEAVY MODE · PHASE 1 — RECON, THEN PROCEED (autonomous)
 
 Everything from here down (Phases 1–2, the full DoD, the execution loop, ScheduleWakeup,
 Workflow, the PR finish) is the HEAVY path — used when Phase 0 classified the task as heavy.
 For a light task, use Light mode above instead.
 
-The failure to avoid here: dumping ~20 questions before writing a line when half of them are
-answered by the repo itself. That asks the user for what's already in `package.json` and blocks
-100% of the work on their reply — which breaks the "walk away, come back to a result" promise.
-So recon the code first, then ask only what the code genuinely can't tell you.
+The failure to avoid here: stopping to ask the user *anything* before writing a line. A question
+blocks the work on a human reply and breaks the "walk away, come back to a result" promise — and
+half of them are already answered in `package.json` anyway. So recon the code first, then turn
+everything the code can't tell you into an explicit, flagged assumption and keep going. Don't ask.
 
 **1. Re-read the original prompt in full** — what's asked, why, and what "done" looks like from
 the user's point of view.
 
-**2. Recon the repo FIRST, silently, before asking anything.** If the task touches an existing
+**2. Recon the repo FIRST, silently, up front.** If the task touches an existing
 project, read the code and answer as many of your own questions as you can:
 - framework / language / runtime / version — `package.json`, lock file, `tsconfig`, configs;
 - package manager — from the lock file (`pnpm-lock.yaml` / `package-lock.json` / `yarn.lock`);
@@ -118,7 +166,8 @@ project, read the code and answer as many of your own questions as you can:
   (`lint` / `typecheck` / `test` / `build` / `db:*`) actually exist in `package.json`?
 
 Anything you learned from the code, you do NOT ask. Recon is the default; skip it only when
-there's genuinely no project to read (then those items become real questions).
+there's genuinely no project to read — and even then those items don't become questions: take
+them from the prompt or a sensible default and flag them.
 
 If recon turns up a **pre-existing break** — a lock ↔ `package.json` mismatch, or a run-plan
 script that doesn't exist — surface it as its own flag, "pre-existing repo issues that will fail
@@ -126,18 +175,20 @@ CI", with the fix command (e.g. `pnpm install` + commit the refreshed lock). It 
 for delivering your code — just an honest note next to the run plan, so the user doesn't burn a
 CI cycle blaming your change for a break that was already there.
 
-**3. Ask ONLY the genuinely unresolvable questions** — product / policy decisions that aren't in
-the code and can't be safely defaulted. (For "create a user": public signup or admin-only? is
-there a password, and what do we hash it with? the exact response contract and status codes?
-what happens on a duplicate email?) Everything you derived from the repo or a sensible default
-is NOT a question — record it as a **stated assumption** instead. Ask the **max turns** budget
-in this same short block ONLY if you're actually about to enter the autonomous verify loop in
-this environment; if the environment can't run the loop (no install / DB / network — see step 5
-and "When the verify loop can't run here"), skip the max-turns ask, since there's no loop to
-bound yet.
+**3. Turn the unresolvable into flagged assumptions — do NOT ask.** Product / policy decisions
+that aren't in the code and can't be derived (for "create a user": public signup or admin-only?
+password + what hash? the exact response contract and status codes? duplicate email?) do NOT
+become questions. Take the **safest, most conventional default — fail-closed**: the more
+restrictive and more reversible option (e.g. admin-only over public signup), a standard
+status-code contract, hashing with the repo's existing lib or `node:crypto` scrypt. Record each
+as a **stated assumption, flagged prominently** in the report. Everything derived from the repo
+is likewise a stated assumption, not a question. Set the **max-turns** budget yourself to a
+sensible default for the task's size; don't ask for it (if the environment can't run the verify
+loop at all, there's no budget to set yet — see step 5 and "When the verify loop can't run here").
 
 **4. Form the Definition of Done AFTER recon** (see below), so it's grounded in the real stack
-you found, not in guesses. Show it and get an "ok" on the parts that are genuine decisions.
+you found, not in guesses. **State it in your report as the contract you're proceeding on** —
+don't wait for an "ok" before starting.
 
 **5. Progress rule — build-verify-flag, don't hard-block.** The default in heavy mode is: take
 reasonable assumptions (from the repo + common sense) → build → verify as far as the environment
@@ -150,14 +201,17 @@ hashing but `bcrypt`/`argon2` aren't in the deps and there's no network to add t
 `node:crypto` scrypt, flagged "bcrypt/argon2 is a one-function swap". Environment limits shape
 the default; they don't stop the work.
 
-Hard-block (stop and ask *before* starting) ONLY when it's a genuine product/policy fork with
-no safe default AND a high cost of getting it wrong — e.g. "is this endpoint public signup or
-admin-only?" when the code doesn't say. Also stop before a destructive or irreversible action: a
-production / shared DB, an irreversible migration, deleting data, publishing something outward.
+The one thing that still stops you is a **destructive, irreversible, or outward-facing action** —
+a production / shared DB, an irreversible migration, deleting data, publishing something outward.
+There, **don't do it and don't ask permission to grind ahead: halt that one step and report it**
+for a human to run, while you keep doing every part of the work that *isn't* that step. This is a
+safety halt, not a clarifying question — the point is not to ask, it's not to fire an irreversible
+action unattended.
 
-In every other case, move on assumptions and deliver. Aim for at most ONE genuine blocking
-question; everything else becomes a flagged assumption. If the user is around, asking a policy
-question is fine — but keep producing the code that isn't blocked rather than idling.
+A product/policy fork with no safe default (public signup vs admin-only?) is NOT a reason to stop:
+take the **fail-closed** default — the more restrictive, more reversible option — flag it loudly as
+a key assumption, and deliver. Everything becomes a flagged assumption; nothing becomes a blocking
+question. Aim for **zero** questions to the user.
 
 ---
 
@@ -166,10 +220,11 @@ question is fine — but keep producing the code that isn't blocked rather than 
 Once everything is agreed, work fully on your own, strictly to plan, **with no questions to
 the user**. They should be able to walk away and come back to a finished result.
 
-A question is allowed only on a genuine blocker — where continuing is physically impossible
-without an answer (no access to a secret, the task contradicts itself, an external service is
-down). In that case: state the blocker and use `ScheduleWakeup` (see below) so you don't idle
-in wait and don't burn context on empty checks.
+You do not ask the user questions. On a genuine blocker — where continuing is physically
+impossible (no access to a secret, an external service is down) — don't turn it into a question:
+state the blocker in your report, keep doing every part of the work that *isn't* blocked, and use
+`ScheduleWakeup` (see below) if you're waiting on something rather than idling. If the task
+contradicts itself, take the most reasonable reading, flag it, and proceed — don't stop to ask.
 
 Decide everything else yourself, guided by the agreed DoD and common sense. When a minor fork
 comes up that has an obvious default, take the default and note it in the iteration log rather
@@ -255,7 +310,9 @@ One iteration:
 2. **Checks — run the project's FULL suite:** lint, type-check, tests, build, then the live
    check. Take the exact commands from `package.json` scripts / `Makefile` / the CI config —
    don't invent them. Actually run them and read the output; don't rely on "should work". If a
-   check won't run, print the exact reason (`stderr`) — never skip it silently.
+   check won't run, print the exact reason (`stderr`) — never skip it silently. A check that runs
+   long (a big suite, a slow build) — don't block or tight-poll it; watch it with `Monitor` using a
+   filter that catches progress *and* failures, and carry on.
 3. **Diagnosis** — if something is red, find the **root cause**, don't patch the symptom. For
    a non-trivial bug, bring in the `debugger` subagent; tests for new logic can go to
    `test-engineer`.
@@ -277,6 +334,44 @@ it — stop, don't exceed it silently. Show: what's green, what's still red and 
 tried. Then either schedule a `ScheduleWakeup` (if waiting on a long run) or wait for the user.
 The limit is about the number of fix cycles, not the total amount of work; productive work
 within the limit isn't capped by it.
+
+---
+
+## Loop engineering: self-prompt without losing quality (scales with loop length)
+
+The loop above says *what* to run each turn; this says how to prompt **yourself** to drive it
+well and not rot over many turns. It's grounded in agent research (Anthropic's *Building
+Effective Agents* and *Effective context engineering*; Reflexion; Self-Refine) — full patterns,
+recipes, and citations in `references/loop-engineering.md`. The essentials:
+
+- **Evaluate in a separate pass, not the same breath (evaluator-optimizer).** After a change,
+  judge it against the DoD as if someone else wrote it — for each item, cite observable evidence
+  or mark it UNMET. Self-grading in the same turn that wrote the code just rubber-stamps it.
+- **Reflect before you retry (Reflexion).** On a red check, don't blind-retry: first write ≤3
+  lines on the *actual root cause vs. what you assumed*, log it, then fix the cause. Attempts 2
+  and 3 of the per-check cap must each open with this, or they're the same guess again. (Verbal
+  self-reflection is worth real accuracy — ~80%→91% pass@1 on HumanEval in the research.)
+- **No oracle? Give yourself a rubric (Self-Refine).** For prose / API shape / a schema that no
+  test can judge, write a 4–6 point rubric, grade the draft, rewrite the weakest point, repeat.
+- **Fresh-eyes pass before "done".** Re-read the diff as a reviewer who wants to reject it —
+  weakest change, missing test, unhandled input, what breaks in prod. Fix those before the PR.
+- **Anchor in external ground truth, and re-ground when stuck.** A wrong fact that enters the
+  context reproduces every step (context poisoning); after 2–3 stuck iterations, re-read the
+  source/failing test from scratch and distrust anything "established" only inside this loop.
+- **Fight context rot as the transcript grows.** Keep a compact live **state snapshot**
+  (`green: … · red: … · next: …`) and plan from it, not the full history; compact/summarize near
+  the limit (keep DoD + reds, drop resolved detail); offload focused chunks to sub-agents with a
+  clean window. This is *why* subagents/Workflow protect quality, not just speed.
+
+- **Optimize for the human bottleneck (Amdahl).** You generate and verify faster than a human
+  reviews, so the bottleneck moves to *them* — spend your speed making their job cheap, not
+  producing more to wade through. Only verified-green reaches the PR; **self-review before handoff**
+  (fresh-eyes + a `code-reviewer`/`security-reviewer` subagent — automated review catches bugs
+  strong engineers miss); execution is yours but **taste/direction stays the human's — flag those
+  forks and dead ends, don't ask**; kill a dead-end branch early instead of grinding from sunk cost.
+
+Calibrate to loop length: a short loop needs only evaluate-against-DoD + fresh-eyes; a long loop
+adds reflect-before-retry, state snapshots, and compaction/sub-agents.
 
 ---
 
@@ -306,7 +401,10 @@ Forbidden:
 - hardcoding expected values / tuning code to a specific check instead of implementing it;
 - swapping a requested real integration (an API call, a DB query) for a constant stub;
 - catching and swallowing errors so they "don't get in the way";
-- writing placeholders into code ("coming soon", TODO stubs) and passing them off as finished.
+- writing placeholders into code ("coming soon", TODO stubs) and passing them off as finished;
+- shipping a partial or shallow implementation — fewer cases / endpoints than asked, or a
+  happy-path sketch of a feature — as if it were the complete, requested result (scope/quality
+  must match the ask, see "Before 'done'").
 
 **Try the cheap check before you write anything off.** Before you claim "can't", "not
 applicable", or "doesn't count", run the quick command that would settle it — a CI gate's
@@ -345,16 +443,48 @@ the task **blocked, not done**. Do all of this:
   this environment, so the task is **not done — blocked on <reason>**. Don't withhold the code, but
   don't call it "done" or a soft "deferred-done" either. It gets finished once a real environment
   exists (by a human, or by you when one appears).
-- **Offer to close the loop** when an environment with installs/DB appears (or via
-  `ScheduleWakeup` if something is being provisioned) — and ask for **max turns** only then, at
-  the point you actually enter the autonomous verify cycle.
+- **Close the loop yourself once an environment with installs/DB appears** (schedule a
+  `ScheduleWakeup` if something is being provisioned) — don't leave it as a standing "shall I
+  finish it?" offer; just finish it when you can. Set **max turns** yourself when you enter the
+  autonomous verify cycle — don't ask for it.
 
 What the user comes back to is: working code + tests + a precise verification plan — clearly
 labeled **not done (blocked on <reason>)**, never a list of questions and never a false "done".
 
 ---
 
+## Watch long work with `Monitor` (don't tight-poll)
+
+When you've kicked off something long that has a **stream of events to watch** — a long test run
+or build, a dev server, a training job, CI on GitHub's side, a log tail — use the native
+**`Monitor`** tool instead of tight-polling or blocking. It runs your script in the background and
+turns each stdout line into a notification, so you keep working and events arrive on their own.
+
+Pick the shape by how many notifications you need:
+- **One "it's ready"** ("tell me when the build/server is up") → NOT Monitor: use `Bash` with
+  `run_in_background` and a command that exits on the condition —
+  `until grep -q "Ready in" dev.log; do sleep 0.5; done`. One notification, ends in seconds.
+- **One per event until it ends** (emit each CI check as it lands and stop when the run finishes;
+  or each `ERROR` line) → `Monitor` with a command that emits lines. For GitHub-side CI, a poll
+  loop over `gh pr checks` that emits on each terminal status, `sleep 30`.
+- **A live tail for the whole session** (watch a PR / log for the entire run) → `Monitor` with
+  `persistent: true`; stop it with `TaskStop`.
+
+**Silence ≠ success — the same rule as the rest of this skill.** A `Monitor` filter MUST match the
+failure states, not just the happy path: `grep -E "elapsed=|Traceback|Error|FAILED|assert|Killed|OOM"`,
+and in poll loops emit on every terminal status (`succeeded|failed|cancelled|timeout`), not only
+success. A monitor that greps only the success marker stays silent through a crash or a hang — and
+silence is indistinguishable from "still running", which is exactly the fake-green trap. Ask: *if
+this process crashed right now, would my filter emit anything?* If not, widen it. Merge stderr into
+the stream (`cmd 2>&1 | grep --line-buffered …`) or its failures never reach you.
+
+---
+
 ## Self-wakeup (ScheduleWakeup)
+
+Use this when there's **nothing to *watch*** — no event stream, you just need to wake up later (an
+environment being provisioned, "not ready yet, check again"). For a live stream of events, prefer
+`Monitor` above.
 
 When you've kicked off something long (a heavy workflow, a long CI, a background build/audit)
 and there's nothing to do right now — **don't poll status in a tight loop**, it burns tokens
@@ -379,13 +509,101 @@ Format:
 
 Rules:
 
-- **delaySeconds to match scale.** A short build — minutes; a heavy workflow / CI — tens of
-  minutes. Mind the 5-minute cache TTL: sleeping <270s keeps the cache warm (for polling
-  external CI), 1200–1800s is the default for a plain "not ready yet". Don't pick exactly 300s.
+- **delaySeconds to match scale** (clamped to `[60, 3600]`). Match the delay to what you're
+  waiting on, not to any cache window: poll external state (CI, a deploy, a remote queue) no more
+  often than it actually changes — a ~8-min CI run wants one ~480s check, not eight 60s ones — and
+  use 1200–1800s for a plain "not ready yet, check again". Don't schedule short wakeups just to
+  keep the prompt cache warm; that's wasted work.
 - **Put all the context the woken-you needs into `prompt`**: what to check, which task/workflow/PR
   IDs, what to do if done and if still running. The woken-you won't remember the details — they
   must be in the prompt.
 - **Not ready yet → `ScheduleWakeup` again,** not a polling loop.
+
+---
+
+## Long-running tasks & usage-limit-aware pacing (heavy mode)
+
+A heavy task can legitimately run for **many hours** — an overnight job, a 10h+ migration or
+audit. That's the skill working as intended ("walk away, come back to a result"), not a problem
+to engineer around: pace for the long haul, don't try to sprint it in one unbroken burst.
+
+**A usage limit is a pause, not a blocker.** A run that long *will* bump into Claude's usage
+limits — the 5-hour rolling window, and on Pro/Max the weekly cap. Hitting the 5h limit partway
+through a 10h task is **expected and normal**: it is NOT a failure, NOT a reason to report the
+task blocked, and above all NOT a reason to fake-complete or abandon it. You wait out the reset
+and resume — the DoD is still only green when it's actually green.
+
+**Check limits proactively from the terminal — before you get cut off mid-edit.** The
+authoritative check is the interactive `/usage` (or `/status` → Usage tab) *inside* Claude Code,
+but those are slash commands — they can't be run from Bash. For an autonomous, scriptable read use
+**`ccusage`**, which parses Claude Code's local logs:
+
+```bash
+npx ccusage@latest blocks --active --json
+```
+
+It reports the active 5-hour block: `startTime`, `endTime` (when the rolling window resets),
+`isActive`, `tokenCounts`, `costUSD`, and `usageLimitResetTime` when a limit-reached event is in
+the logs. **Run it once first to see the real JSON shape, then parse the reset timestamp** — the
+skill's no-invented-commands rule applies here too; don't hardcode a `jq` path you haven't
+confirmed. Caveat: `ccusage` is a third-party *estimate* from local JSONL, not Anthropic's
+authoritative meter — prefer the `usageLimitResetTime` / `endTime` it surfaces over a guess, and
+treat the numbers as close-but-approximate.
+
+**On the approach → schedule a wakeup to the reset, then sleep.** When the active block is near
+its cap (or you catch a rate-limit error mid-loop), don't grind into the hard cut-off — read the
+reset time and `ScheduleWakeup` to just **after** it (add a few minutes of slack; resuming exactly
+on the boundary can re-trip the limit).
+
+- `ScheduleWakeup` is clamped to **≤1h per call** (`[60, 3600]`s). If the reset is more than an
+  hour out, you can't wait it out in one wakeup — **chain** them (wake in 1h → re-check the block
+  with `ccusage` → still limited? sleep another hour), or hand the resume to a durable **Routine**
+  (`/schedule`, min 1h) / desktop scheduled task so it fires even if this session is closed.
+- Put everything the woken-you needs in the prompt: where you are in the DoD, the exact resume
+  command, the task/PR/workflow IDs, and "re-check limits with `ccusage` before resuming". Same
+  fake-green rule as everywhere — the woken-you knows only what the prompt says, never "continue
+  where I left off".
+
+The shape is identical to the rest of the skill's waiting machinery: a limit is a *watched,
+scheduled wait*, not a stop and not a fake done.
+
+---
+
+## Repeat a prompt / hand work to another session (`/loop`, cron, routines)
+
+`ScheduleWakeup` above is a **one-shot**: it fires once and re-injects one prompt into *this*
+session. When you instead need the prompt to **repeat**, or to run in a **fresh session** (even
+with this one closed), reach for the tools below — each gives future-you, or a different session,
+a prompt to act on. This is the mechanism for "work on it while I'm away": don't sit and idle,
+hand yourself (or another session) the exact next prompt and let the harness re-invoke you.
+
+- **Repeat a prompt to yourself, in this session → `/loop`.**
+  - Fixed cadence: `/loop 15m check whether CI went green and fix any red job` — units are
+    `s` / `m` / `h` / `d`; the interval can lead (`30m …`) or trail (`… every 2 hours`).
+  - Self-paced (you pick the delay each round, 1–60 min): `/loop check CI and address review
+    comments` — under the hood each iteration ends by calling `ScheduleWakeup` with the *same*
+    loop prompt, and you end the loop by calling `ScheduleWakeup { "stop": true }` once the
+    stop-condition is met. Prefer this when the right cadence depends on what you observe.
+  - Re-run a skill each round: `/loop 20m /review-pr 1234`.
+  - Session-scoped: fires only while this session is open and idle; `Esc` clears the pending
+    wakeup; auto-expires after 7 days; restored by `claude --resume` / `--continue` if unexpired.
+
+- **Hand a prompt to a session that isn't even open → cron / routines.**
+  - `CronCreate` (+ `CronList` / `CronDelete`) — schedule a recurring or one-shot prompt that
+    fires between turns in *this* session. 5-field cron `minute hour day-of-month month
+    day-of-week` (e.g. `*/5 * * * *`, `0 9 * * 1-5`). Still session-scoped (dies with the session).
+  - **Durable, survives the session and a closed terminal → Routines (the `/schedule` skill).**
+    A prompt that runs in a **fresh cloud session** on Anthropic infra on a cron (min interval
+    **1 hour**), even with your machine off — the real tool for "keep working while I'm away"
+    that must outlive this session. Runs against a fresh clone, no local uncommitted files.
+  - Desktop scheduled tasks — same idea, but a fresh **local** session on your machine (min 1 min).
+
+Fit the tool to what you're waiting on: **`Monitor`** for a live event stream → **`ScheduleWakeup`**
+for a one-shot "check back later" in this session → **`/loop`** to repeat a prompt to yourself here
+→ **routines / `/schedule`** for durable, run-while-closed work in a fresh session. Whichever you
+pick, the fake-green rule holds: the woken-you or the next session knows **only** what you put in
+the prompt — put the exact command to run, the task/PR/workflow IDs, and the done-condition there,
+never "continue where I left off".
 
 ---
 
@@ -436,6 +654,23 @@ checks below:
   genuinely stops that — an environment that can't run CI, or a real product decision you had to
   surface — the task is **blocked, NOT done**: say so plainly, hand over the code + run plan for a
   human to finish, and never present blocked as "done" or "deferred-done".
+- **Check that the scope AND quality of what you built actually match the request — not just that
+  it runs.** The item-by-item map above proves each ask is *present*; this proves it's present *at
+  the right size and depth*. Two distinct mismatches to catch, both of which pass tests and still
+  fail the request:
+  - **Scope / volume mismatch (under- or over-delivery).** Does the amount of work delivered match
+    the breadth the request genuinely implies? A full feature answered by a 10-line happy-path
+    sketch, one endpoint when three were asked, or the core path with all the edge cases skipped is
+    **under-delivery dressed as done** — keep going (delegate / `Workflow`) until the real breadth
+    is met. Equally, don't pad with scope nobody asked for; match the ask, don't inflate it.
+  - **Quality / depth mismatch.** Is the code at the depth this request needs — real logic (not a
+    stub or hardcoded value faked to pass the check), error/edge cases handled, follows the repo's
+    existing patterns and quality bar — or a shallow version that technically executes but doesn't
+    actually do the job? "It runs" and "it's green" are NOT "it meets the ask": a thin
+    implementation can pass a thin test and still be wrong.
+  Compare the deliverable against what a competent engineer would consider a complete, correct
+  answer to *this* request, at *this* codebase's standard. If it falls short on either axis, it is
+  NOT done — say what's thin and finish it; never round a partial or shallow result up to "done".
 - **Security pass over the change before shipping.** Review what you touched for the
   vulnerabilities that class of code invites — authn/authz & access control, input validation &
   injection (SQL/command/path), secrets in code/logs/responses, unsafe deserialization, SSRF,
@@ -443,8 +678,8 @@ checks below:
   open security note, not silence. For security-sensitive changes, run a dedicated
   `security-reviewer` subagent pass.
 
-Only once the request is fully met and the security pass is clean do you proceed to the PR
-checks.
+Only once the request is fully met — right scope, right depth — and the security pass is clean do
+you proceed to the PR checks.
 
 ---
 
@@ -458,7 +693,9 @@ BEFORE you call the DoD green** — not after:
 2. **Every REQUIRED CI gate is green.** Read the run results (`gh pr checks <pr>`) AND confirm
    which checks are actually required (`gh api repos/{owner}/{repo}/branches/{base}/protection/required_status_checks`,
    or branch-protection settings). Any required check not green → the PR is not clean and the DoD
-   is not green.
+   is not green. While CI is still running, watch it with `Monitor` (a `gh pr checks` poll loop
+   that emits on each terminal status), not a tight poll — and read the state live right before you
+   report (next point).
 3. **Read the branch/PR state from a command right before you report** — your memory of "it was
    green earlier" is not evidence.
 
@@ -506,13 +743,24 @@ No methodology recap, no play-by-play — just these four.
 
 ## Quick reference
 
+- **Burst of messages first:** ≥3 asks in a row → enumerate them into the native `TodoWrite` list,
+  one item each, work strictly one at a time (one `in_progress`), flip to `completed` only when
+  verified, append new mid-run asks instead of dropping the current one, and report "N/M done, on #k"
+  — the list is where you are, not memory. Single task → no list needed.
 - **Triage first (Phase 0):** light or heavy? Process intensity ∝ cost of error × scale.
-- **Light task:** sensible defaults + code now, ≤1–3 questions on expensive forks only, state
-  assumptions, no max-turns / DoD / CI ceremony — but still verify what you can, never fake it.
-- **Heavy task:** recon the repo first (answer your own questions from the code) → ask at most
-  ONE genuine policy blocker (everything else = flagged assumption; constraint-aware defaults, no
-  blocking on defaultable forks) → DoD grounded in the real stack → build-verify-flag → autonomous
-  execution. Ask max turns only when you actually enter the verify loop.
+- **Don't offer — do it.** The ultraloop invocation is confirmation + permission (2-in-1); no
+  "if you want, I can…" / "should I…?" offers. Reasonable part of done → just do it and report
+  done. Optional/taste fork → decide it yourself, flag it — never a yes/no you wait on. Only the
+  destructive/irreversible/outward-facing safety halt gets surfaced, and even that you report,
+  not offer.
+- **Light task:** sensible defaults + code now, **no questions** (expensive forks → the most
+  standard default, flagged), state assumptions, no max-turns / DoD / CI ceremony — but still
+  verify what you can, never fake it.
+- **Heavy task:** recon the repo first (answer your own questions from the code) → **no questions
+  to the user**: every unresolved fork becomes a fail-closed flagged assumption → DoD grounded in
+  the real stack, *stated* not approved → build-verify-flag → autonomous execution. Set max turns
+  yourself. The only stop is a destructive/irreversible/outward action → halt that step and report
+  it, don't ask.
 - Done = observable evidence that it works, not "code written".
 - **Heavy stop-condition (all 4, mandatory, no exception):** implemented fully + branch synced to
   base (no conflicts) + local lint/types/tests/build green + PR open & CI green (unmerged). Any one
@@ -525,14 +773,32 @@ No methodology recap, no play-by-play — just these four.
   mandatory); never withhold the code, never call it done.
 - Heavy loop: sync to base → change → run the FULL checks (lint/types/tests/build/live) using the
   repo's own commands → fix → repeat, ≤3 attempts per failing check, with an iteration log.
+- **Loop engineering (self-prompt, don't rot):** evaluate against the DoD in a *separate* pass;
+  reflect on root cause before retrying; rubric-critique when there's no test; fresh-eyes the diff
+  before the PR; re-ground when stuck and keep a compact state snapshot as the transcript grows.
+  Full patterns + citations in `references/loop-engineering.md`.
 - A blocker claim needs the exact `stderr` and a command run first — not an assertion. Final
   report once, at the end: changed files / per-check status / PR state / blockers.
 - **Report signal, not methodology:** what's verified / red / left; note self-verify once;
   nothing new → say nothing.
-- Long run → `ScheduleWakeup`, not polling. Heavy chunk → subagents; genuinely large → `Workflow`.
+- Long run with events to watch (tests/build/CI/logs) → `Monitor` (streams events; the filter must
+  catch failures, not just success). Nothing to stream, just wait → `ScheduleWakeup` (one-shot
+  self-wakeup with a prompt). Repeat a prompt to yourself this session → `/loop <prompt>` (add an
+  interval like `/loop 15m …` for fixed cadence; omit it to self-pace via `ScheduleWakeup`, end
+  with `{stop:true}`). Durable, run-while-closed in a fresh session → routines (`/schedule`).
+  Always put the exact check/IDs/done-condition in the prompt — the woken/next session knows only
+  that. Never tight-poll. Heavy chunk → subagents; genuinely large → `Workflow`.
+- **Long-running (overnight / 10h+) is normal for heavy tasks — pace for it.** Hitting Claude's
+  usage limit mid-run is an expected *pause*, not a blocker and not a reason to fake done. Check
+  limits from the terminal with `npx ccusage@latest blocks --active --json` (the authoritative
+  `/usage` / `/status` is interactive-only, not scriptable); on the approach, `ScheduleWakeup` to
+  just after the reset (`usageLimitResetTime` / `endTime`, + a few min slack) and sleep — chain 1h
+  wakeups (clamp is ≤1h) or a Routine if the reset is >1h out. Then re-check and resume the DoD.
 - **Before "done" (heavy):** every explicit ask delivered & working, item-by-item (no "remaining"
-  leftovers) + a security pass over what you touched. Carry it to completion — delegate to
-  subagents / a `Workflow` to *finish*, never hand back the rest.
+  leftovers) + **scope & quality actually match the request** (right breadth, not fewer
+  cases/endpoints than asked; real depth, not a happy-path sketch that merely runs — "it's green"
+  ≠ "it meets the ask") + a security pass over what you touched. Carry it to completion — delegate
+  to subagents / a `Workflow` to *finish*, never hand back the rest.
 - **Finish (heavy): open a clean PR, do NOT merge it** — leave the merge to a human. Prove it by
   command before "done": mergeable (no conflicts) + every REQUIRED CI gate green + state re-read
   live. Never wave away a red gate — check if it's required (required+red = not done;
